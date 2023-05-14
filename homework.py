@@ -31,13 +31,13 @@ def check_tokens():
 
 
 def send_message(bot, message):
-    """Отправляем сообщение в telegram пользователю."""
+    """Отправляем сообщение в Telegram пользователю."""
     try:
-        logger.info(f'Отправляем сообщение в телеграм: {message}')
+        logging.debug('Отправляем сообщение в Telegram: %s', message)
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.info(f'Сообщение успешно отправлено: {message}')
-    except telegram.error.TelegramError:
-        logger.error('Сообщение не отпралено: {}')
+        logging.info('Сообщение успешно отправлено: %s', message)
+    except telegram.error.TelegramError as error:
+        logging.error(f'Сообщение не отправлено: {error}')
 
 
 def get_api_answer(current_timestamp):
@@ -70,11 +70,11 @@ def check_response(response):
         raise TypeError('Ответ API некорректен, неверный тип данных!')
     homeworks = response.get('homeworks')
     if homeworks is None:
-        raise Exception('Ответ API некорректен, '
-                        'отсутствует ключ "homeworks"!')
+        raise KeyError('Ответ API некорректен, '
+                       'отсутствует ключ "homeworks"!')
     if not isinstance(homeworks, list):
-        raise KeyError('Ответ API некорректен, по ключю "homeworks" '
-                       'получен не список!')
+        raise TypeError('Ответ API некорректен, по ключю "homeworks" '
+                        'получен не список!')
     return homeworks
 
 
@@ -100,8 +100,9 @@ def parse_status(homework):
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
+        logger = logging.getLogger()
         logger.critical('Отсутствуют переменные окружения!')
-        sys.exit('Отсутствуют переменные окружения!')
+        raise ValueError('Отсутствуют обязательные переменные окружения!')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     old_status = 'Статус не обновлялся'
     no_changes = 'Статус не обновлялся'
@@ -135,6 +136,7 @@ if __name__ == '__main__':
     stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(logging.Formatter(formatter))
     logger = logging.getLogger()
+    logging.getLogger("telegram").setLevel(logging.ERROR)
     logger.setLevel(logging.INFO)
     logger.addHandler(stream_handler)
     main()
