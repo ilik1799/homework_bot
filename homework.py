@@ -44,21 +44,20 @@ def get_api_answer(current_timestamp):
     """Получаем ответ API-сервиса и преобразуем JSON к типам данных Python."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    error_text = ('Сбой в работе программы: Эндпоинт {} '
+    error_text = ('Сбой в работе программы: Эндпоинт {}'
                   'недоступен. Код ответа API: {}.')
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         if response.status_code != HTTPStatus.OK:
-            raise Exception
+            raise ValueError(f'Код ответа API: {response.status_code}. {error_text}')
     except requests.exceptions.ConnectionError as error:
-        raise Exception(
-            error_text.format(
-                ENDPOINT,
-                error
-            ) + f'параметры запроса: {ENDPOINT}, {HEADERS}, {params}'
-        )
-    except Exception:
-        raise Exception(error_text.format(ENDPOINT, response.status_code))
+        raise ValueError(f'Ошибка подключения: {error}. {error_text.format("Ошибка подключения")}')
+    except requests.exceptions.RequestException as error:
+        raise ValueError(f'Ошибка запроса: {error}. {error_text.format("Ошибка запроса")}')
+    except ValueError:
+        raise
+    except Exception as error:
+        raise ValueError(f'Неизвестная ошибка: {error}. {error_text.format("Неизвестная ошибка")}')
     else:
         response = response.json()
         return response
@@ -104,8 +103,7 @@ def main():
         logger.critical('Отсутствуют переменные окружения!')
         raise ValueError('Отсутствуют обязательные переменные окружения!')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    old_status = 'Статус не обновлялся'
-    no_changes = 'Статус не обновлялся'
+    last_status = 'Статус не обновлялся'
     sent_message = ''
     while True:
         try:
@@ -113,13 +111,13 @@ def main():
             response = get_api_answer(current_timestamp)
             homework_list = check_response(response)
             if not homework_list:
-                status = 'Статус не обновлялся'
                 logger.debug('Отсутствие в ответе новых статусов')
+                status = 'Статус не обновлялся'
             else:
                 status = parse_status(homework_list[0])
-                if status != no_changes and old_status != status:
-                    send_message(bot, status)
-                    old_status = status
+            if status != last_status:
+                send_message(bot, status)
+                last_status = status
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
