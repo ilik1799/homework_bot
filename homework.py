@@ -49,8 +49,8 @@ def get_api_answer(current_timestamp):
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         if response.status_code != HTTPStatus.OK:
-            raise ValueError('Код ответа API: {response.status_code}. '
-                             '{error_text}')
+            raise ValueError(f'Код ответа API: {response.status_code}. '
+                             f'{error_text}')
     except requests.exceptions.ConnectionError as error:
         raise ValueError(f'Ошибка подключения: {error}. '
                          f'{error_text.format("Ошибка подключения")}')
