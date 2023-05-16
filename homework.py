@@ -40,28 +40,36 @@ def send_message(bot, message):
         logging.error(f'Сообщение не отправлено: {error}')
 
 
+class APIRequestError(Exception):
+    """Исключение, возникающее при ошибке запроса к API."""
+
+    pass
+
+
 def get_api_answer(current_timestamp):
     """Получаем ответ API-сервиса и преобразуем JSON к типам данных Python."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    error_text = ('Сбой в работе программы: Эндпоинт {} '
-                  'недоступен. Код ответа API: {}.')
+    error_text = (
+        'Сбой в работе программы: Эндпоинт {} '
+        'недоступен. Код ответа API: {}.'
+    )
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         if response.status_code != HTTPStatus.OK:
-            raise ValueError(f'Код ответа API: {response.status_code}. '
-                             f'{error_text}')
+            raise APIRequestError(f'Код ответа API: {response.status_code}. '
+                                  f'{error_text}')
     except requests.exceptions.ConnectionError as error:
-        raise ValueError(f'Ошибка подключения: {error}. '
-                         f'{error_text.format("Ошибка подключения")}')
+        raise APIRequestError(f'Ошибка подключения: {error}. '
+                              f'{error_text.format("Ошибка подключения")}')
     except requests.exceptions.RequestException as error:
-        raise ValueError(f'Ошибка запроса: {error}. '
-                         f'{error_text.format("Ошибка запроса")}')
-    except ValueError:
-        raise
+        raise APIRequestError(f'Ошибка запроса: {error}. '
+                              f'{error_text.format("Ошибка запроса")}')
+    except APIRequestError:
+        raise  # Пропускаем повторное возбуждение собственного исключения
     except Exception as error:
-        raise ValueError(f'Неизвестная ошибка: {error}. '
-                         f'{error_text.format("Неизвестная ошибка")}')
+        raise APIRequestError(f'Неизвестная ошибка: {error}. '
+                              f'{error_text.format("Неизвестная ошибка")}')
     else:
         response = response.json()
         return response
