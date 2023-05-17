@@ -65,8 +65,6 @@ def get_api_answer(current_timestamp):
     except requests.exceptions.RequestException as error:
         raise APIRequestError(f'Ошибка запроса: {error}. '
                               f'{error_text.format("Ошибка запроса")}')
-    except APIRequestError:
-        raise  # Пропускаем повторное возбуждение собственного исключения
     except Exception as error:
         raise APIRequestError(f'Неизвестная ошибка: {error}. '
                               f'{error_text.format("Неизвестная ошибка")}')
